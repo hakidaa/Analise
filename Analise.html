@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Terminal Hacker - Analisador</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: black;
+      color: #00ff88;
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    h1 {
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px #00ff88;
+    }
+    textarea, button, input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background-color: #111;
+      color: #00ff88;
+      border: 1px solid #00ff88;
+      border-radius: 5px;
+    }
+    button {
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    button:hover {
+      background-color: #00ff88;
+      color: #000;
+      transform: scale(1.02);
+    }
+    .output {
+      margin-top: 20px;
+    }
+    .platform {
+      background-color: rgba(0, 255, 136, 0.1);
+      padding: 10px;
+      border-left: 3px solid #00ff88;
+      margin-bottom: 15px;
+    }
+    .platform h3 {
+      margin-bottom: 5px;
+      color: #00ffaa;
+    }
+
+    @media (max-width: 600px) {
+      textarea {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="matrix"></canvas>
+
+  <h1>🧠 Analisador Hacker de Logins</h1>
+
+  <textarea id="inputArea" rows="8" placeholder="Cole aqui seus links com login e senha..."></textarea>
+  <button onclick="analisar()">💾 Analisar</button>
+
+  <input type="file" id="fileInput" accept=".txt" onchange="importarArquivo()" />
+
+  <div class="output" id="resultado"></div>
+
+  <script>
+    // Efeito Matrix animado
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    let letters = Array(256).join("1").split("");
+    const draw = () => {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#00ff88";
+      letters.map((y_pos, index) => {
+        const text = String.fromCharCode(3e4 + Math.random() * 33);
+        const x_pos = index * 10;
+        ctx.fillText(text, x_pos, y_pos);
+        letters[index] = y_pos > canvas.height + Math.random() * 1e4 ? 0 : y_pos + 10;
+      });
+    };
+    setInterval(draw, 33);
+
+    // Analisar logins de texto
+    function analisar(textoManual = null) {
+      const texto = textoManual || document.getElementById('inputArea').value;
+      const linhas = texto.split('\n');
+      const dados = {};
+
+      const regex = /(https?:\/\/)?([\w.-]+\.\w+)[^\s]*[\s:]+([\w.-]+)[\s:]+([\w.-@!#$%^&*]+)/i;
+
+      linhas.forEach(linha => {
+        const match = linha.match(regex);
+        if (match) {
+          const plataforma = match[2].toLowerCase();
+          const usuario = match[3];
+          const senha = match[4];
+
+          if (!dados[plataforma]) dados[plataforma] = [];
+          dados[plataforma].push({ usuario, senha });
+        }
+      });
+
+      const resultado = document.getElementById('resultado');
+      resultado.innerHTML = '';
+
+      if (Object.keys(dados).length === 0) {
+        resultado.innerHTML = '<p>Nenhum login encontrado.</p>';
+        return;
+      }
+
+      for (const plataforma in dados) {
+        const div = document.createElement('div');
+        div.className = 'platform';
+        div.innerHTML = `<h3>🌐 ${plataforma}</h3>` +
+          dados[plataforma].map(cred =>
+            `👤 <strong>${cred.usuario}</strong> | 🔐 <strong>${cred.senha}</strong>`
+          ).join('<br>');
+        resultado.appendChild(div);
+      }
+    }
+
+    // Importar arquivo .txt
+    function importarArquivo() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const conteudo = e.target.result;
+        document.getElementById('inputArea').value = conteudo;
+        analisar(conteudo);
+      };
+      reader.readAsText(file);
+    }
+  </script>
+
+</body>
+</html>
